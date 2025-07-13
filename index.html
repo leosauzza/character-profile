@@ -25,6 +25,12 @@
         textarea {
             resize: vertical;
         }
+
+        @media (min-width: 768px) {
+            #stat-summary {
+                display: none !important;
+            }
+        }
     </style>
 </head>
 
@@ -87,8 +93,10 @@
             </thead>
             <tbody id="armas"></tbody>
         </table>
-        <button type="button" class="btn btn-sm btn-outline-primary mb-3" onclick="addExpandableRow('armas', 5)">+
-            Agregar arma</button>
+        <button type="button" class="btn btn-sm btn-outline-primary mb-3"
+            onclick="addExpandableRowEditable('armas', 5)">
+            + Agregar arma
+        </button>
 
 
         <!-- TALENTOS -->
@@ -103,8 +111,10 @@
             </thead>
             <tbody id="talentos"></tbody>
         </table>
-        <button type="button" class="btn btn-sm btn-outline-primary mb-3" onclick="addExpandableRow('talentos')">+
-            Agregar talento</button>
+        <button type="button" class="btn btn-sm btn-outline-primary mb-3"
+            onclick="addExpandableRowEditable('talentos', 2)">
+            + Agregar talento
+        </button>
 
         <!-- PODERES -->
         <h2>✨ Poderes</h2>
@@ -118,8 +128,10 @@
             </thead>
             <tbody id="poderes"></tbody>
         </table>
-        <button type="button" class="btn btn-sm btn-outline-primary" onclick="addExpandableRow('poderes')">+ Agregar
-            poder</button>
+        <button type="button" class="btn btn-sm btn-outline-primary mb-3"
+            onclick="addExpandableRowEditable('poderes', 2)">
+            + Agregar poder
+        </button>
 
         <!-- EQUIPAMIENTO -->
         <h2>🧰 Equipamiento</h2>
@@ -131,6 +143,25 @@
         <textarea class="form-control mb-3" id="objetos" rows="4" placeholder="Lista de objetos..."></textarea>
 
     </form>
+
+    <div class="text-center mt-5">
+        <button type="button" class="btn btn-danger" onclick="resetSheet()">
+            🔄 Resetear hoja de personaje
+        </button>
+    </div>
+
+    <div id="stat-summary"
+        class="d-flex justify-content-around align-items-center bg-dark text-white rounded p-2 shadow-sm position-fixed bottom-0 start-50 translate-middle-x mb-3"
+        style="z-index: 1050; display: none; max-width: 90%; font-size: 0.85rem;">
+        💪 <span id="sum-fu">0</span> &nbsp;
+        🤸 <span id="sum-ag">0</span> &nbsp;
+        👗 <span id="sum-ap">0</span> &nbsp;
+        🏹 <span id="sum-pr">0</span> &nbsp;
+        🗣️ <span id="sum-vo">0</span> &nbsp;
+        👁️ <span id="sum-pe">0</span> &nbsp;
+        ❤️ <span id="sum-vida">-</span> &nbsp;
+        🔮 <span id="sum-mana">-</span>
+    </div>
 
     <script>
         const simpleFields = [
@@ -146,9 +177,18 @@
                 if (saved !== null) document.getElementById(id).value = saved;
             });
 
-            loadExpandableRows('armas', 5);
-            loadExpandableRows('talentos', 2);
-            loadExpandableRows('poderes', 2);
+            ['talentos', 'poderes', 'armas'].forEach(id => {
+                const cols = id === 'armas' ? 5 : 2;
+                const total = +localStorage.getItem(`${id}_rows`) || 0;
+                for (let i = 0; i < total; i++) {
+                    addExpandableRowEditable(id, cols);
+                }
+            });
+
+            ['fu', 'ag', 'ap', 'pr', 'vo', 'pe', 'vida', 'mana'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.addEventListener('input', updateStatsSummary);
+            });
         });
 
         // Save changes
@@ -194,10 +234,12 @@
             if (save) localStorage.setItem(`${id}_rows`, tbody.rows.length);
         }
 
-        function addExpandableRow(id, columns = 2) {
+        function addExpandableRowEditable(id, columns) {
             const tbody = document.getElementById(id);
             const index = tbody.rows.length / 2;
+            const inputs = [];
 
+            // === FILA PRINCIPAL ===
             const mainRow = tbody.insertRow();
             for (let c = 0; c < columns; c++) {
                 const cell = mainRow.insertCell();
@@ -206,20 +248,23 @@
                 const key = `${id}_${index}_${c}`;
                 input.value = localStorage.getItem(key) || '';
                 input.addEventListener('input', () => localStorage.setItem(key, input.value));
+                inputs.push({ input, key, cell });
                 cell.appendChild(input);
             }
 
-            // Chevron cell
+            // Chevron
             const toggleCell = mainRow.insertCell();
             const icon = document.createElement('i');
             icon.className = 'bi bi-chevron-down';
             icon.style.cursor = 'pointer';
             toggleCell.appendChild(icon);
 
+            // === FILA DE NOTAS ===
             const noteRow = tbody.insertRow();
             noteRow.style.display = 'none';
+
             const noteCell = noteRow.insertCell();
-            noteCell.colSpan = columns + 1;
+            noteCell.colSpan = columns;
 
             const label = document.createElement('label');
             label.textContent = '📝 Notas';
@@ -230,23 +275,139 @@
             const noteKey = `${id}_${index}_notes`;
             textarea.value = localStorage.getItem(noteKey) || '';
             textarea.addEventListener('input', () => localStorage.setItem(noteKey, textarea.value));
-
             noteCell.appendChild(label);
             noteCell.appendChild(textarea);
 
+            const actionCell = noteRow.insertCell();
+            actionCell.className = 'text-end align-top';
+
+            // === BOTÓN TRASH ===
+            const trashBtn = document.createElement('button');
+            trashBtn.type = 'button';
+            trashBtn.className = 'btn btn-sm btn-danger mt-2 me-1';
+            trashBtn.innerHTML = '<i class="bi bi-trash"></i>';
+            trashBtn.onclick = () => {
+                for (let c = 0; c < columns; c++) {
+                    localStorage.removeItem(`${id}_${index}_${c}`);
+                }
+                localStorage.removeItem(noteKey);
+                tbody.removeChild(mainRow);
+                tbody.removeChild(noteRow);
+                localStorage.setItem(`${id}_rows`, tbody.rows.length / 2);
+            };
+
+            // === BOTÓN EDIT/GUARDAR ===
+            const toggleEditBtn = document.createElement('button');
+            toggleEditBtn.type = 'button';
+            toggleEditBtn.className = 'btn btn-sm btn-primary mt-2';
+            toggleEditBtn.innerHTML = '<i class="bi bi-pencil"></i>';
+
+            let editable = true;
+
+            function setEditMode(state) {
+                editable = state;
+                toggleEditBtn.className = 'btn btn-sm ' + (editable ? 'btn-success' : 'btn-primary') + ' mt-2';
+                toggleEditBtn.innerHTML = editable
+                    ? '<i class="bi bi-save"></i>'
+                    : '<i class="bi bi-pencil"></i>';
+
+                for (const { input, key, cell } of inputs) {
+                    if (editable) {
+                        cell.innerHTML = '';
+                        input.disabled = false;
+                        cell.appendChild(input);
+                    } else {
+                        input.disabled = true;
+                        cell.innerHTML = input.value;
+                    }
+                }
+
+                if (editable) {
+                    textarea.disabled = false;
+                    noteCell.innerHTML = '';
+                    noteCell.appendChild(label);
+                    noteCell.appendChild(textarea);
+                } else {
+                    textarea.disabled = true;
+                    noteCell.innerHTML = `<strong>📝 Notas:</strong><br>${textarea.value}`;
+                }
+
+                // Reagregar botones alineados
+                actionCell.innerHTML = '';
+                actionCell.appendChild(trashBtn);
+                actionCell.appendChild(toggleEditBtn);
+            }
+
+            toggleEditBtn.onclick = () => {
+                if (editable) {
+                    for (const { input, key } of inputs) {
+                        localStorage.setItem(key, input.value);
+                    }
+                    localStorage.setItem(noteKey, textarea.value);
+                }
+                setEditMode(!editable);
+            };
+
+            // Inicial
+            setEditMode(true);
+
+            // Chevron
             icon.addEventListener('click', () => {
                 const isOpen = noteRow.style.display === 'table-row';
                 noteRow.style.display = isOpen ? 'none' : 'table-row';
                 icon.className = isOpen ? 'bi bi-chevron-down' : 'bi bi-chevron-up';
             });
 
+            actionCell.appendChild(trashBtn);
+            actionCell.appendChild(toggleEditBtn);
+
             localStorage.setItem(`${id}_rows`, tbody.rows.length / 2);
         }
 
         function loadExpandableRows(id, cols = 2) {
             const total = +localStorage.getItem(`${id}_rows`) || 0;
-            for (let i = 0; i < total; i++) addExpandableRow(id, cols);
+            for (let i = 0; i < total; i++) addExpandableRowTalentos('talentos', 2);
         }
+
+        function resetSheet() {
+            if (confirm("¿Estás seguro de que querés borrar todos los datos? Esta acción no se puede deshacer.")) {
+                localStorage.clear();
+                location.reload();
+            }
+        }
+
+        function updateStatsSummary() {
+            const val = id => parseInt(document.getElementById(id)?.value || 0, 10) || 0;
+            const raw = id => document.getElementById(id)?.value?.trim() || '-';
+
+            document.getElementById('sum-fu').textContent = val('fu');
+            document.getElementById('sum-ag').textContent = val('ag');
+            document.getElementById('sum-ap').textContent = val('ap');
+            document.getElementById('sum-pr').textContent = val('pr');
+            document.getElementById('sum-vo').textContent = val('vo');
+            document.getElementById('sum-pe').textContent = val('pe');
+            document.getElementById('sum-vida').textContent = raw('vida');
+            document.getElementById('sum-mana').textContent = raw('mana');
+        }
+
+        function toggleStatSummaryVisibility() {
+            const summary = document.getElementById('stat-summary');
+            const statsSection = document.querySelector('.row-cols-2.row-cols-md-6'); // la grilla de stats
+
+            if (!statsSection) return;
+
+            const rect = statsSection.getBoundingClientRect();
+            const visible = rect.top >= 0 && rect.bottom <= window.innerHeight;
+
+            summary.style.display = visible ? 'none' : 'flex';
+        }
+
+        window.addEventListener('scroll', toggleStatSummaryVisibility);
+        window.addEventListener('resize', toggleStatSummaryVisibility);
+        window.addEventListener('DOMContentLoaded', () => {
+            toggleStatSummaryVisibility();
+            updateStatsSummary();
+        });
     </script>
 
 </body>
