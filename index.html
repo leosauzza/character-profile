@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Hoja de Personaje - Ángeles y Demonios</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <style>
         body {
             padding: 2rem;
@@ -49,21 +50,14 @@
             </div>
         </div>
 
-        <!-- ATRIBUTOS -->
         <h2>📊 Atributos</h2>
-        <div class="row g-3">
-            <div class="col"><label class="form-label">💪 FU</label><input type="number" id="fu" class="form-control" />
-            </div>
-            <div class="col"><label class="form-label">🤸 AG</label><input type="number" id="ag" class="form-control" />
-            </div>
-            <div class="col"><label class="form-label">🛡️ AP</label><input type="number" id="ap"
-                    class="form-control" /></div>
-            <div class="col"><label class="form-label">🧠 PR</label><input type="number" id="pr" class="form-control" />
-            </div>
-            <div class="col"><label class="form-label">🗣️ VO</label><input type="number" id="vo"
-                    class="form-control" /></div>
-            <div class="col"><label class="form-label">👁️ PE</label><input type="number" id="pe"
-                    class="form-control" /></div>
+        <div class="row row-cols-2 row-cols-md-6 g-3">
+            <div><label class="form-label">💪 FU</label><input type="number" id="fu" class="form-control" /></div>
+            <div><label class="form-label">🤸 AG</label><input type="number" id="ag" class="form-control" /></div>
+            <div><label class="form-label">🛡️ AP</label><input type="number" id="ap" class="form-control" /></div>
+            <div><label class="form-label">🧠 PR</label><input type="number" id="pr" class="form-control" /></div>
+            <div><label class="form-label">🗣️ VO</label><input type="number" id="vo" class="form-control" /></div>
+            <div><label class="form-label">👁️ PE</label><input type="number" id="pe" class="form-control" /></div>
         </div>
 
         <!-- VIDA Y MANÁ -->
@@ -101,13 +95,14 @@
                 <tr>
                     <th>🧠 Nombre</th>
                     <th style="width: 80px;">📈 Nivel</th>
-                    <th>📝 Notas</th>
+                    <th style="width: 50px;"></th>
                 </tr>
             </thead>
             <tbody id="talentos"></tbody>
         </table>
+        <button type="button" class="btn btn-sm btn-outline-primary mb-3" onclick="addExpandableRow('talentos')">+
+            Agregar talento</button>
 
-        <!-- Poderes -->
         <!-- PODERES -->
         <h2>✨ Poderes</h2>
         <table class="table table-bordered align-middle">
@@ -115,11 +110,13 @@
                 <tr>
                     <th>🔮 Nombre</th>
                     <th style="width: 80px;">📈 Nivel</th>
-                    <th>📝 Notas</th>
+                    <th style="width: 50px;"></th>
                 </tr>
             </thead>
             <tbody id="poderes"></tbody>
         </table>
+        <button type="button" class="btn btn-sm btn-outline-primary" onclick="addExpandableRow('poderes')">+ Agregar
+            poder</button>
 
         <!-- OBJETOS -->
         <h2>🎒 Objetos</h2>
@@ -141,9 +138,9 @@
                 if (saved !== null) document.getElementById(id).value = saved;
             });
 
-            loadTable('armas', 2, 5);             // sin textarea
-            loadTable('talentos', 3, 3, true);    // con textarea
-            loadTable('poderes', 3, 3, true);
+            loadTable('armas', 2, 5);              // sin cambios
+            loadExpandableRows('talentos');       // nueva función
+            loadExpandableRows('poderes');        // nueva función
         });
 
         // Save changes
@@ -187,6 +184,63 @@
             }
 
             if (save) localStorage.setItem(`${id}_rows`, tbody.rows.length);
+        }
+
+        function addExpandableRow(id) {
+            const tbody = document.getElementById(id);
+            const index = tbody.rows.length / 2;
+
+            const mainRow = tbody.insertRow();
+            const nameCell = mainRow.insertCell();
+            const levelCell = mainRow.insertCell();
+            const toggleCell = mainRow.insertCell();
+
+            const nameInput = document.createElement('input');
+            nameInput.className = 'form-control';
+            nameInput.value = localStorage.getItem(`${id}_${index}_0`) || '';
+            nameInput.addEventListener('input', () => localStorage.setItem(`${id}_${index}_0`, nameInput.value));
+            nameCell.appendChild(nameInput);
+
+            const levelInput = document.createElement('input');
+            levelInput.className = 'form-control';
+            levelInput.value = localStorage.getItem(`${id}_${index}_1`) || '';
+            levelInput.addEventListener('input', () => localStorage.setItem(`${id}_${index}_1`, levelInput.value));
+            levelCell.appendChild(levelInput);
+
+            const icon = document.createElement('i');
+            icon.className = 'bi bi-chevron-down';
+            icon.style.cursor = 'pointer';
+            toggleCell.appendChild(icon);
+
+            const noteRow = tbody.insertRow();
+            noteRow.style.display = 'none';
+            const noteCell = noteRow.insertCell();
+            noteCell.colSpan = 3;
+
+            const label = document.createElement('label');
+            label.textContent = '📝 Notas';
+            const textarea = document.createElement('textarea');
+            textarea.className = 'form-control mt-1';
+            textarea.rows = 2;
+            textarea.style.resize = 'vertical';
+            textarea.value = localStorage.getItem(`${id}_${index}_2`) || '';
+            textarea.addEventListener('input', () => localStorage.setItem(`${id}_${index}_2`, textarea.value));
+
+            noteCell.appendChild(label);
+            noteCell.appendChild(textarea);
+
+            icon.addEventListener('click', () => {
+                const isOpen = noteRow.style.display === 'table-row';
+                noteRow.style.display = isOpen ? 'none' : 'table-row';
+                icon.className = isOpen ? 'bi bi-chevron-down' : 'bi bi-chevron-up';
+            });
+
+            localStorage.setItem(`${id}_rows`, tbody.rows.length / 2);
+        }
+
+        function loadExpandableRows(id) {
+            const total = +localStorage.getItem(`${id}_rows`) || 0;
+            for (let i = 0; i < total; i++) addExpandableRow(id);
         }
     </script>
 
