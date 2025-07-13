@@ -284,7 +284,7 @@
             // === BOTÓN TRASH ===
             const trashBtn = document.createElement('button');
             trashBtn.type = 'button';
-            trashBtn.className = 'btn btn-sm btn-danger mt-2 me-1';
+            trashBtn.className = 'btn btn-sm btn-danger mt-2';
             trashBtn.innerHTML = '<i class="bi bi-trash"></i>';
             trashBtn.onclick = () => {
                 for (let c = 0; c < columns; c++) {
@@ -333,9 +333,13 @@
                 }
 
                 // Reagregar botones alineados
+                const btnContainer = document.createElement('div');
+                btnContainer.className = 'd-flex flex-column align-items-center justify-content-center gap-1 mt-2';
+                btnContainer.appendChild(toggleEditBtn);
+                btnContainer.appendChild(trashBtn);
+
                 actionCell.innerHTML = '';
-                actionCell.appendChild(trashBtn);
-                actionCell.appendChild(toggleEditBtn);
+                actionCell.appendChild(btnContainer);
             }
 
             toggleEditBtn.onclick = () => {
@@ -358,8 +362,13 @@
                 icon.className = isOpen ? 'bi bi-chevron-down' : 'bi bi-chevron-up';
             });
 
-            actionCell.appendChild(trashBtn);
-            actionCell.appendChild(toggleEditBtn);
+            const btnContainer = document.createElement('div');
+            btnContainer.className = 'd-flex flex-column align-items-center justify-content-center gap-1 mt-2';
+            btnContainer.appendChild(toggleEditBtn);
+            btnContainer.appendChild(trashBtn);
+
+            actionCell.innerHTML = '';
+            actionCell.appendChild(btnContainer);
 
             localStorage.setItem(`${id}_rows`, tbody.rows.length / 2);
         }
