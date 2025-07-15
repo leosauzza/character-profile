@@ -1,0 +1,42 @@
+body {
+  padding: 2rem;
+}
+
+table input {
+  border: none;
+  background: transparent;
+  width: 100%;
+}
+
+h2 {
+  margin-top: 2rem;
+}
+
+textarea {
+  resize: vertical;
+}
+
+#character-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+#character-controls > * {
+  margin: 0.25rem;
+}
+
+@media (min-width: 768px) {
+  #stat-summary {
+    display: none !important;
+  }
+}
+
+#stat-summary {
+  z-index: 1050;
+  display: none;
+  max-width: 90%;
+  font-size: 0.85rem;
+  padding: 0.5rem;
+}
